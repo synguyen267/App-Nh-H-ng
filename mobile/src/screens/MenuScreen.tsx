@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import IconBan from '../components/IconBan';
 import {
   View,
   Text,
@@ -167,7 +168,12 @@ export default function MenuScreen({ navigation }: any) {
   return (
     <View style={{ flex: 1, backgroundColor: MAU.nen }}>
       <View style={styles.thanhBan}>
-        <Text style={styles.textBan}>🍽️ {soBan || 'Chưa chọn bàn'}</Text>
+       
+       <View style={styles.nhomBan}>
+  <IconBan size={20} />
+  <Text style={styles.textBan}>{soBan || 'Chưa chọn bàn'}</Text>
+</View>
+
         <Pressable onPress={() => navigation.navigate('ChonBan')}>
           <Text style={styles.doiBan}>Đổi bàn</Text>
         </Pressable>
@@ -419,4 +425,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  nhomBan: { flexDirection: 'row', alignItems: 'center', gap: 8 },
 });

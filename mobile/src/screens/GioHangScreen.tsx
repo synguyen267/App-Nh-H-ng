@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import IconBan from '../components/IconBan';
 import {
   View,
   Text,
@@ -63,7 +64,8 @@ export default function GioHangScreen({ navigation }: any) {
         contentContainerStyle={{ padding: 16 }}
         ListHeaderComponent={
           <View style={styles.oHienBan}>
-            <Text style={styles.textHienBan}>🍽️ {soBan || 'Chưa chọn bàn'}</Text>
+            <IconBan size={20} />
+            <Text style={styles.textHienBan}>{soBan || 'Chưa chọn bàn'}</Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -119,6 +121,9 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     borderWidth: 1,
     borderColor: MAU.vien,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   textHienBan: { fontWeight: '700', color: MAU.chu, fontSize: 13.5 },
   dongMon: {

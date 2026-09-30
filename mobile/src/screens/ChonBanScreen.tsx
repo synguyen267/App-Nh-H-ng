@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
-import { Check, ShoppingBag, UtensilsCrossed } from 'lucide-react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import Svg, { Rect, Circle } from 'react-native-svg';
+import { useBan } from '../context/BanContext';
+import { ChefHat } from 'lucide-react-native';
 
 const MAU = {
   nen: '#FFFFFF',
@@ -13,161 +15,140 @@ const MAU = {
 };
 
 // Đổi số lượng bàn của quán tại đây
-export const SO_LUONG_BAN = 12;
-export const MANG_VE = 'Mang về';
+const SO_LUONG_BAN = 12;
+const SO_COT = 3; // luôn 3 ô to mỗi hàng
+const DANH_SACH_BAN = Array.from({ length: SO_LUONG_BAN }, (_, i) => i + 1);
 
-// Chọn bàn dạng lưới: bấm 1 ô là chọn, giá trị trả về là chuỗi "Bàn 5" hoặc "Mang về"
-export default function ChonBan({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  const { width } = useWindowDimensions();
-  const soCot = width >= 700 ? 6 : 4;
+// Icon SVG: bàn tròn nhìn từ trên xuống, có 4 ghế
+function IconBan({ size = 44, mauBan, mauGhe }: { size?: number; mauBan: string; mauGhe: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 48 48">
+      <Rect x={17} y={2} width={14} height={7} rx={3.5} fill={mauGhe} />
+      <Rect x={17} y={39} width={14} height={7} rx={3.5} fill={mauGhe} />
+      <Rect x={2} y={17} width={7} height={14} rx={3.5} fill={mauGhe} />
+      <Rect x={39} y={17} width={7} height={14} rx={3.5} fill={mauGhe} />
+      <Circle cx={24} cy={24} r={12} fill={mauBan} />
+      <Circle cx={24} cy={24} r={6.5} fill="white" opacity={0.28} />
+    </Svg>
+  );
+}
 
+export default function ChonBanScreen({ navigation }: any) {
+  const { chonBan } = useBan();
+
+  // Tự chia hàng đúng 3 ô (không dựa vào flex-wrap) để canh đều
   const cacHang = useMemo(() => {
-    const ds = Array.from({ length: SO_LUONG_BAN }, (_, i) => i + 1);
     const hang: number[][] = [];
-    for (let i = 0; i < ds.length; i += soCot) hang.push(ds.slice(i, i + soCot));
+    for (let i = 0; i < DANH_SACH_BAN.length; i += SO_COT) hang.push(DANH_SACH_BAN.slice(i, i + SO_COT));
     return hang;
-  }, [soCot]);
+  }, []);
 
-  const laMangVe = value === MANG_VE;
+  const chon = (so: number) => {
+    chonBan(`Bàn ${so}`);
+    navigation.replace('ThucDon');
+  };
 
   return (
-    <View style={styles.the}>
-      <View style={styles.tieuDe}>
-        <View style={styles.iconTron}>
-          <UtensilsCrossed size={18} color={MAU.nhan} strokeWidth={2.2} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.tenTieuDe}>Chọn bàn của bạn</Text>
-          <Text style={styles.phuTieuDe}>Số bàn có trên mặt bàn hoặc hỏi nhân viên</Text>
-        </View>
-        {!!value && (
-          <View style={styles.daChon}>
-            <Text style={styles.textDaChon}>{value}</Text>
-          </View>
-        )}
-      </View>
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.noiDung} showsVerticalScrollIndicator={false}>
+        <View style={styles.khung}>
+          <Text style={styles.chaoMung}>Chào mừng quý khách</Text>
+          <Text style={styles.tieuDe}>Bạn đang ngồi ở bàn nào?</Text>
+          <Text style={styles.phu}>Chạm vào số bàn để bắt đầu gọi món</Text>
 
-      {cacHang.map((hang, idx) => (
-        <View key={idx} style={styles.hang}>
-          {hang.map((so) => {
-            const ten = `Bàn ${so}`;
-            const chon = value === ten;
-            return (
-              <Pressable
-                key={so}
-                onPress={() => onChange(ten)}
-                style={({ pressed }) => [
-                  styles.oBan,
-                  chon && styles.oBanChon,
-                  pressed && !chon && styles.oBanNhan,
-                ]}
-              >
-                <Text style={[styles.chuBan, chon && styles.chuBanChon]}>Bàn</Text>
-                <Text style={[styles.soBan, chon && styles.soBanChon]}>{so}</Text>
-                {chon && (
-                  <View style={styles.dauCheck}>
-                    <Check size={11} color={MAU.nhan} strokeWidth={4} />
-                  </View>
-                )}
-              </Pressable>
-            );
-          })}
-          {Array.from({ length: soCot - hang.length }).map((_, i) => (
-            <View key={`trong-${i}`} style={{ flex: 1 }} />
+          {cacHang.map((hang, idx) => (
+            <View key={idx} style={styles.hang}>
+              {hang.map((so) => (
+                <Pressable
+                  key={so}
+                  onPress={() => chon(so)}
+                  style={({ pressed }) => [styles.oBan, pressed && styles.oBanNhan]}
+                >
+                  {({ pressed }) => (
+                    <>
+                      <View style={[styles.vongIcon, pressed && styles.vongIconNhan]}>
+                        <IconBan
+                          size={44}
+                          mauBan={pressed ? '#FFFFFF' : MAU.nhan}
+                          mauGhe={pressed ? 'rgba(255,255,255,0.5)' : '#F1A29C'}
+                        />
+                      </View>
+                      <Text style={[styles.tenBan, pressed && styles.chuTrang]}>Bàn {so}</Text>
+                    </>
+                  )}
+                </Pressable>
+              ))}
+              {Array.from({ length: SO_COT - hang.length }).map((_, i) => (
+                <View key={`trong-${i}`} style={{ flex: 1 }} />
+              ))}
+            </View>
           ))}
         </View>
-      ))}
+      </ScrollView>
 
-      <Pressable
-        onPress={() => onChange(MANG_VE)}
-        style={[styles.nutMangVe, laMangVe && styles.nutMangVeChon]}
-      >
-        <ShoppingBag size={18} color={laMangVe ? 'white' : MAU.chu} strokeWidth={2.2} />
-        <Text style={[styles.textMangVe, laMangVe && { color: 'white' }]}>Mang về</Text>
-      </Pressable>
+      <View style={styles.chanTrang}>
+        <Pressable style={styles.nutBep} onPress={() => navigation.navigate('Bep')}>
+          <ChefHat size={16} color={MAU.chuMo} strokeWidth={2.2} />
+          <Text style={styles.textNutBep}>Nhân viên · Vào màn hình bếp</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  the: {
-    backgroundColor: MAU.nenPhu,
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 20,
+  container: { flex: 1, backgroundColor: MAU.nen },
+  noiDung: { flexGrow: 1, padding: 16, paddingTop: 28, alignItems: 'center' },
+  khung: { width: '100%', maxWidth: 720 },
+
+  chaoMung: { fontSize: 14, color: MAU.nhan, fontWeight: '700' },
+  tieuDe: { fontSize: 24, fontWeight: '800', color: MAU.chu, marginTop: 4 },
+  phu: { fontSize: 13, color: MAU.chuMo, marginTop: 4, marginBottom: 22, fontWeight: '600' },
+
+  hang: { flexDirection: 'row', gap: 14, marginBottom: 14 },
+  oBan: {
+    flex: 1,
+    aspectRatio: 1,
+    backgroundColor: MAU.nen,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: MAU.vien,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
   },
-  tieuDe: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
-  iconTron: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  oBanNhan: {
+    backgroundColor: MAU.nhan,
+    borderColor: MAU.nhan,
+    shadowColor: MAU.nhan,
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+  },
+  vongIcon: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     backgroundColor: MAU.nhanNhat,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tenTieuDe: { fontSize: 16, fontWeight: '800', color: MAU.chu },
-  phuTieuDe: { fontSize: 12, color: MAU.chuMo, marginTop: 1 },
-  daChon: { backgroundColor: MAU.nhan, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
-  textDaChon: { color: 'white', fontWeight: '800', fontSize: 12 },
+  vongIconNhan: { backgroundColor: 'rgba(255,255,255,0.18)' },
+  tenBan: { fontSize: 16, fontWeight: '800', color: MAU.chu },
+  chuTrang: { color: 'white' },
 
-  hang: { flexDirection: 'row', gap: 10, marginBottom: 10 },
-  oBan: {
-    flex: 1,
-    aspectRatio: 1.1,
-    backgroundColor: MAU.nen,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: MAU.vien,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  oBanNhan: { backgroundColor: MAU.nhanNhat, borderColor: '#F3B6B1' },
-  oBanChon: {
-    backgroundColor: MAU.nhan,
-    borderColor: MAU.nhan,
-    shadowColor: MAU.nhan,
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
-  },
-  chuBan: { fontSize: 11, fontWeight: '700', color: MAU.chuMo },
-  chuBanChon: { color: 'rgba(255,255,255,0.8)' },
-  soBan: { fontSize: 22, fontWeight: '800', color: MAU.chu, marginTop: -1 },
-  soBanChon: { color: 'white' },
-  dauCheck: {
-    position: 'absolute',
-    top: 5,
-    right: 5,
-    width: 17,
-    height: 17,
-    borderRadius: 9,
-    backgroundColor: 'white',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  nutMangVe: {
-    marginTop: 2,
+  chanTrang: { alignItems: 'center', paddingVertical: 12, borderTopWidth: 1, borderTopColor: MAU.vien, backgroundColor: MAU.nen },
+  nutBep: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 8,
-    paddingVertical: 13,
-    borderRadius: 14,
-    backgroundColor: MAU.nen,
-    borderWidth: 1.5,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+    backgroundColor: MAU.nenPhu,
+    borderWidth: 1,
     borderColor: MAU.vien,
-    borderStyle: 'dashed',
   },
-  nutMangVeChon: { backgroundColor: MAU.chu, borderColor: MAU.chu, borderStyle: 'solid' },
-  textMangVe: { fontSize: 14, fontWeight: '800', color: MAU.chu },
+  textNutBep: { color: MAU.chuMo, fontWeight: '700', fontSize: 13 },
 });
