@@ -9,9 +9,9 @@ import {
   RefreshControl,
   useWindowDimensions,
 } from 'react-native';
-import { api, DonHang, TrangThaiDonHang } from '../api/client';
+import { api, DonHang, LuotGoi, TrangThaiDonHang } from '../api/client';
 import IconBan from '../components/IconBan';
-import { Clock, Flame, CheckCircle2, XCircle, ChefHat } from 'lucide-react-native';
+import { Clock, Flame, CheckCircle2, XCircle, ChefHat, Bell } from 'lucide-react-native';
 
 const MAU = {
   nen: '#FFFFFF',
@@ -146,6 +146,7 @@ export default function BepScreen() {
   const soCot = width >= 1000 ? 3 : width >= 650 ? 2 : 1;
 
   const [dsDon, setDsDon] = useState<DonHang[]>([]);
+  const [dsGoi, setDsGoi] = useState<LuotGoi[]>([]);
   const [dangTai, setDangTai] = useState(true);
   const [dangLamMoi, setDangLamMoi] = useState(false);
   const [loi, setLoi] = useState<string | null>(null);
@@ -156,8 +157,12 @@ export default function BepScreen() {
     dangTaiNgam.current = true;
     if (hienLoading) setDangTai(true);
     try {
-      const ds = await api.layDanhSachDonHang();
+      const [ds, goi] = await Promise.all([
+        api.layDanhSachDonHang(),
+        api.layDanhSachGoi().catch(() => [] as LuotGoi[]), // lỗi phần gọi nhân viên không làm hỏng danh sách đơn
+      ]);
       setDsDon(ds);
+      setDsGoi(goi);
       setLoi(null);
     } catch (e: any) {
       setLoi('Không kết nối được backend');
@@ -173,6 +178,15 @@ export default function BepScreen() {
     const hen = setInterval(() => tai(false), 4000); // tự làm mới mỗi 4 giây
     return () => clearInterval(hen);
   }, [tai]);
+
+  const xuLyGoi = async (id: number) => {
+    setDsGoi((ds) => ds.filter((g) => g.id !== id));
+    try {
+      await api.xuLyGoi(id);
+    } catch {
+      tai(false);
+    }
+  };
 
   const doiTrangThai = async (id: number, trangThai: TrangThaiDonHang) => {
     // cập nhật ngay trên giao diện trước, rồi mới gọi API (cảm giác mượt hơn)
@@ -220,6 +234,23 @@ export default function BepScreen() {
         contentContainerStyle={styles.noiDung}
         refreshControl={<RefreshControl refreshing={dangLamMoi} onRefresh={() => { setDangLamMoi(true); tai(false); }} />}
       >
+        {dsGoi.map((g) => (
+          <View key={g.id} style={styles.theGoi}>
+            <View style={styles.vongGoi}>
+              <Bell size={18} color="white" strokeWidth={2.4} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.textGoi}>{g.soBan} đang gọi nhân viên</Text>
+              <Text style={styles.gio}>
+                {new Date(g.thoiGian).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+              </Text>
+            </View>
+            <Pressable style={styles.nutXuLyGoi} onPress={() => xuLyGoi(g.id)}>
+              <Text style={styles.textNutXuLyGoi}>Đã xử lý</Text>
+            </Pressable>
+          </View>
+        ))}
+
         {donDangXuLy.length === 0 ? (
           <View style={styles.trongRong}>
             <View style={styles.vongTrong}>
@@ -264,6 +295,28 @@ const styles = StyleSheet.create({
   noiDung: { padding: 16, paddingBottom: 40 },
   tieuDeNhom: { fontSize: 18, fontWeight: '800', color: MAU.chu, marginTop: 14, marginBottom: 14 },
 
+  theGoi: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: MAU.nhanNhat,
+    borderWidth: 1.5,
+    borderColor: MAU.nhan,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 14,
+  },
+  vongGoi: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: MAU.nhan,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textGoi: { fontSize: 15, fontWeight: '800', color: MAU.chu },
+  nutXuLyGoi: { backgroundColor: MAU.nhan, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 },
+  textNutXuLyGoi: { color: 'white', fontWeight: '800', fontSize: 13 },
   trongRong: { alignItems: 'center', paddingVertical: 48 },
   vongTrong: {
     width: 68,

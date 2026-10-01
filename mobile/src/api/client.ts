@@ -25,6 +25,12 @@ export interface ChiTietDonHang {
   monAn: MonAn;
 }
 
+export interface LuotGoi {
+  id: number;
+  soBan: string;
+  thoiGian: string;
+}
+
 export type TrangThaiDonHang = 'dang_cho' | 'dang_lam' | 'hoan_thanh' | 'da_huy';
 
 export interface DonHang {
@@ -63,6 +69,25 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ soBan, danhSachMon }),
     });
+    return xuLyPhanHoi(res);
+  },
+
+  goiNhanVien: async (soBan: string): Promise<LuotGoi> => {
+    const res = await fetch(`${API_BASE_URL}/api/goinhanvien`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ soBan }),
+    });
+    return xuLyPhanHoi(res);
+  },
+
+  layDanhSachGoi: async (): Promise<LuotGoi[]> => {
+    const res = await fetch(`${API_BASE_URL}/api/goinhanvien`);
+    return xuLyPhanHoi(res);
+  },
+
+  xuLyGoi: async (id: number) => {
+    const res = await fetch(`${API_BASE_URL}/api/goinhanvien/${id}`, { method: 'DELETE' });
     return xuLyPhanHoi(res);
   },
 

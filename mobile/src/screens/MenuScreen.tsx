@@ -16,7 +16,8 @@ import { useGioHang } from '../context/GioHangContext';
 import { useBan } from '../context/BanContext';
 import AnhMon from '../components/AnhMon';
 import { IconLoai } from '../components/IconLoai';
-import { Plus, Minus, X, ShoppingCart } from 'lucide-react-native';
+import { Plus, Minus, X, ShoppingCart, Bell, Check } from 'lucide-react-native';
+import { thongBao } from '../utils/thongbao';
 
 const MAU = {
   nen: '#FFFFFF',
@@ -122,6 +123,22 @@ export default function MenuScreen({ navigation }: any) {
   const [monXem, setMonXem] = useState<MonAn | null>(null);
   const { cacMuc, themVaoGio, giamSoLuong, tongSoLuong, tongTien } = useGioHang();
   const { soBan } = useBan();
+  const [dangGoi, setDangGoi] = useState(false);
+  const [daGoi, setDaGoi] = useState(false);
+
+  const goiNhanVien = async () => {
+    if (!soBan || dangGoi || daGoi) return;
+    setDangGoi(true);
+    try {
+      await api.goiNhanVien(soBan);
+      setDaGoi(true);
+      setTimeout(() => setDaGoi(false), 30000); // 30 giây sau mới cho gọi lại, tránh bấm liên tục
+    } catch {
+      thongBao('Không gọi được nhân viên', 'Vui lòng thử lại hoặc vẫy tay gọi nhân viên');
+    } finally {
+      setDangGoi(false);
+    }
+  };
 
   const tai = async () => {
     try {
@@ -193,9 +210,25 @@ export default function MenuScreen({ navigation }: any) {
   <Text style={styles.textBan}>{soBan || 'Chưa chọn bàn'}</Text>
 </View>
 
-        <Pressable onPress={() => navigation.navigate('ChonBan')}>
-          <Text style={styles.doiBan}>Đổi bàn</Text>
-        </Pressable>
+        <View style={styles.nhomPhai}>
+          <Pressable
+            style={[styles.nutGoi, daGoi && styles.nutGoiXong]}
+            onPress={goiNhanVien}
+            disabled={!soBan || dangGoi || daGoi}
+          >
+            {daGoi ? (
+              <Check size={14} color="#1E9E5A" strokeWidth={3} />
+            ) : (
+              <Bell size={14} color={MAU.nhan} strokeWidth={2.6} />
+            )}
+            <Text style={[styles.textNutGoi, daGoi && { color: '#1E9E5A' }]}>
+              {daGoi ? 'Đã gọi nhân viên' : 'Gọi nhân viên'}
+            </Text>
+          </Pressable>
+          <Pressable onPress={() => navigation.navigate('ChonBan')}>
+            <Text style={styles.doiBan}>Đổi bàn</Text>
+          </Pressable>
+        </View>
       </View>
       <View style={styles.thanChinh}>
         {/* Sidebar danh mục - hẹp bên trái */}
@@ -460,4 +493,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   nhomBan: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  nhomPhai: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  nutGoi: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderWidth: 1.5,
+    borderColor: MAU.nhan,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  nutGoiXong: { borderColor: '#1E9E5A', backgroundColor: '#E6F5EC' },
+  textNutGoi: { fontSize: 12.5, fontWeight: '800', color: MAU.nhan },
 });

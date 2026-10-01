@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MonAnModule } from './mon-an/mon-an.module';
 import { DonHangModule } from './don-hang/don-hang.module';
+import { GoiNhanVienModule } from './goi-nhan-vien/goi-nhan-vien.module';
 import { MonAn } from './mon-an/mon-an.entity';
 import { DonHang, ChiTietDonHang } from './don-hang/don-hang.entity';
 
@@ -18,6 +19,7 @@ import { DonHang, ChiTietDonHang } from './don-hang/don-hang.entity';
     TypeOrmModule.forFeature([MonAn]),
     MonAnModule,
     DonHangModule,
+    GoiNhanVienModule,
   ],
 })
 export class AppModule implements OnModuleInit {
