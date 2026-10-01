@@ -1,4 +1,5 @@
-import { BadRequestException, Body, Controller, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { NhanVienGuard } from '../auth/nhan-vien.guard';
 import { IsString } from 'class-validator';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
@@ -12,6 +13,7 @@ class UploadAnhDto {
 }
 
 // Nhận ảnh từ trang admin, lưu vào public/images và trả về đường dẫn
+@UseGuards(NhanVienGuard)
 @Controller('api/upload')
 export class UploadController {
   @Post()

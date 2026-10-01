@@ -45,13 +45,30 @@ label.o input:focus,label.o textarea:focus{outline:0;border-color:var(--do)}
 .hang{display:flex;gap:10px;justify-content:flex-end}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--chu);color:#fff;padding:10px 18px;border-radius:10px;font-weight:700;opacity:0;pointer-events:none;transition:.2s}
 #toast.hien{opacity:1}#toast.loi{background:var(--do)}
+.the3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:8px}
+.so{border:1px solid var(--vien);border-radius:14px;padding:14px;background:var(--phu)}
+.so small{display:block;color:var(--mo);font-weight:700;font-size:12px}
+.so b{font-size:22px;color:var(--do)}
+h3{font-size:16px;margin:20px 0 8px}
+.ls{display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--vien);padding:9px 2px;font-size:14px}
+.ls .tt2{flex:1;min-width:0}.ls small{display:block;color:var(--mo);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tg{font-size:11px;font-weight:800;border-radius:6px;padding:3px 8px;background:var(--phu);color:var(--mo)}
+.tg.xong{background:#E6F5EC;color:var(--xanh)}.tg.huy{background:var(--phu)}.tg.cho{background:var(--nhat);color:var(--do)}
+@media(max-width:560px){.the3{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div class="khung">
   <div class="dau"><h1>Quản lý thực đơn</h1><button class="nut" id="them">+ Thêm món</button></div>
-  <div class="loc" id="loc"></div>
-  <div id="ds"></div>
+  <div class="loc"><button class="chip on" id="tMenu">Thực đơn</button><button class="chip" id="tDT">Doanh thu</button></div>
+  <div id="tabMenu">
+    <div class="loc" id="loc"></div>
+    <div id="ds"></div>
+  </div>
+  <div id="tabDT" hidden>
+    <div class="loc" id="kt"><button class="chip on" data-k="hom">Hôm nay</button><button class="chip" data-k="7">7 ngày</button><button class="chip" data-k="30">30 ngày</button></div>
+    <div id="thongKe"></div>
+  </div>
 </div>
 
 <dialog id="hop">
@@ -69,6 +86,14 @@ label.o input:focus,label.o textarea:focus{outline:0;border-color:var(--do)}
     <div class="hang"><button type="button" class="nut phu" id="huy">Hủy</button><button class="nut" id="luu">Lưu</button></div>
   </form>
 </dialog>
+<dialog id="dn">
+  <form id="fDn">
+    <h2>Nhập mã PIN</h2>
+    <label class="o">Mã PIN nhân viên<input id="pin" type="password" inputmode="numeric" autocomplete="off" required></label>
+    <div id="loiPin" style="color:var(--do);font-size:13px;margin-bottom:10px"></div>
+    <div class="hang"><button class="nut">Vào</button></div>
+  </form>
+</dialog>
 <div id="toast"></div>
 
 <script>
@@ -83,8 +108,9 @@ function toast(msg, loi) {
   clearTimeout(toast.h); toast.h = setTimeout(() => (t.className = ''), 3000);
 }
 async function goi(url, opt) {
-  const r = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...opt });
+  const r = await fetch(url, { headers: { 'Content-Type': 'application/json', 'x-pin': sessionStorage.getItem('pin') || '' }, ...opt });
   const d = await r.json().catch(() => ({}));
+  if (r.status === 401 && !url.includes('dangnhap')) { sessionStorage.removeItem('pin'); hoiPin(); throw new Error('Cần nhập mã PIN'); }
   if (!r.ok) throw new Error([].concat(d.message || 'Có lỗi xảy ra').join(', '));
   return d;
 }
@@ -163,7 +189,67 @@ $('#form').onsubmit = async (e) => {
   } catch (err) { toast(err.message, true); }
   $('#luu').disabled = false;
 };
-tai();
+// ---- Đăng nhập bằng PIN
+function hoiPin() { $('#pin').value = ''; if (!$('#dn').open) $('#dn').showModal(); }
+$('#dn').addEventListener('cancel', (e) => e.preventDefault());
+$('#fDn').onsubmit = async (e) => {
+  e.preventDefault();
+  const pin = $('#pin').value;
+  try {
+    await goi('/api/auth/dangnhap', { method: 'POST', body: JSON.stringify({ pin }) });
+    sessionStorage.setItem('pin', pin); $('#loiPin').textContent = ''; $('#dn').close(); tai();
+  } catch (err) { $('#loiPin').textContent = err.message; $('#pin').value = ''; }
+};
+
+// ---- Doanh thu & lịch sử đơn (tính từ danh sách đơn hàng)
+let kt = 'hom';
+const TT = { dang_cho: ['Đang chờ', 'cho'], dang_lam: ['Đang làm', 'cho'], hoan_thanh: ['Hoàn thành', 'xong'], da_huy: ['Đã hủy', 'huy'] };
+function doiTab(t) {
+  $('#tabMenu').hidden = t !== 'menu'; $('#tabDT').hidden = t !== 'dt'; $('#them').hidden = t !== 'menu';
+  $('#tMenu').classList.toggle('on', t === 'menu'); $('#tDT').classList.toggle('on', t === 'dt');
+  if (t === 'dt') taiDT();
+}
+$('#tMenu').onclick = () => doiTab('menu');
+$('#tDT').onclick = () => doiTab('dt');
+$('#kt').onclick = (e) => {
+  if (!e.target.dataset.k) return;
+  kt = e.target.dataset.k;
+  document.querySelectorAll('#kt .chip').forEach((c) => c.classList.toggle('on', c.dataset.k === kt));
+  taiDT();
+};
+async function taiDT() {
+  try {
+    const dons = await goi('/api/donhang');
+    const tu = new Date(); tu.setHours(0, 0, 0, 0); tu.setDate(tu.getDate() - { hom: 0, 7: 6, 30: 29 }[kt]);
+    const tr = dons.filter((d) => new Date(d.thoiGianTao) >= tu);
+    const xong = tr.filter((d) => d.trangThai === 'hoan_thanh');
+    const doanhThu = xong.reduce((t, d) => t + d.tongTien, 0);
+    const mon = {};
+    xong.forEach((d) => d.chiTiet.forEach((c) => {
+      const m = (mon[c.monAn.ten] ||= { sl: 0, tien: 0 }); m.sl += c.soLuong; m.tien += c.donGia * c.soLuong;
+    }));
+    const top = Object.entries(mon).sort((a, b) => b[1].sl - a[1].sl).slice(0, 5);
+    $('#thongKe').innerHTML = `
+      <div class="the3">
+        <div class="so"><small>Doanh thu</small><b>${fmt(doanhThu)}</b></div>
+        <div class="so"><small>Đơn hoàn thành</small><b>${xong.length}</b></div>
+        <div class="so"><small>Trung bình / đơn</small><b>${fmt(xong.length ? doanhThu / xong.length : 0)}</b></div>
+      </div>
+      <small style="color:var(--mo)">Doanh thu chỉ tính các đơn đã hoàn thành.</small>
+      <h3>Món bán chạy</h3>
+      ${top.map(([ten, m]) => `<div class="ls"><div class="tt2"><b>${esc(ten)}</b></div><span>${m.sl} phần</span><span class="gia">${fmt(m.tien)}</span></div>`).join('') || '<p style="color:var(--mo)">Chưa có dữ liệu</p>'}
+      <h3>Lịch sử đơn (${tr.length})</h3>
+      ${tr.slice(0, 50).map((d) => {
+        const g = new Date(d.thoiGianTao), [nhan, lop] = TT[d.trangThai] || [d.trangThai, ''];
+        return `<div class="ls"><div class="tt2"><b>#${d.id} · ${esc(d.soBan || '')}</b><small>${g.toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })} · ${esc(d.chiTiet.map((c) => c.soLuong + '× ' + c.monAn.ten).join(', '))}</small></div><span class="tg ${lop}">${nhan}</span><span class="gia">${fmt(d.tongTien)}</span></div>`;
+      }).join('') || '<p style="color:var(--mo)">Chưa có đơn nào</p>'}`;
+  } catch (e) { toast(e.message, true); }
+}
+
+// Khởi động: phải có PIN hợp lệ mới tải dữ liệu
+const pinCu = sessionStorage.getItem('pin');
+if (!pinCu) hoiPin();
+else goi('/api/auth/dangnhap', { method: 'POST', body: JSON.stringify({ pin: pinCu }) }).then(tai).catch(hoiPin);
 </script>
 </body>
 </html>

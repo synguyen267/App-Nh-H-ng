@@ -49,7 +49,13 @@ export function layUrlAnh(hinhAnh?: string | null): string | null {
   return `${API_BASE_URL}${hinhAnh.startsWith('/') ? '' : '/'}${hinhAnh}`;
 }
 
+// Mã PIN nhân viên, giữ trong bộ nhớ (tắt app là phải nhập lại)
+let pinNhanVien = '';
+export const daDangNhapNhanVien = () => !!pinNhanVien;
+const headerNV = () => ({ 'Content-Type': 'application/json', 'x-pin': pinNhanVien });
+
 async function xuLyPhanHoi(res: Response) {
+  if (res.status === 401) pinNhanVien = '';
   if (!res.ok) {
     const loi = await res.json().catch(() => ({ message: res.statusText }));
     throw new Error(loi.message || 'Có lỗi xảy ra');
@@ -58,6 +64,16 @@ async function xuLyPhanHoi(res: Response) {
 }
 
 export const api = {
+  dangNhapNhanVien: async (pin: string) => {
+    const res = await fetch(`${API_BASE_URL}/api/auth/dangnhap`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin }),
+    });
+    await xuLyPhanHoi(res);
+    pinNhanVien = pin;
+  },
+
   layDanhSachMonAn: async (): Promise<MonAn[]> => {
     const res = await fetch(`${API_BASE_URL}/api/monan`);
     return xuLyPhanHoi(res);
@@ -82,24 +98,24 @@ export const api = {
   },
 
   layDanhSachGoi: async (): Promise<LuotGoi[]> => {
-    const res = await fetch(`${API_BASE_URL}/api/goinhanvien`);
+    const res = await fetch(`${API_BASE_URL}/api/goinhanvien`, { headers: headerNV() });
     return xuLyPhanHoi(res);
   },
 
   xuLyGoi: async (id: number) => {
-    const res = await fetch(`${API_BASE_URL}/api/goinhanvien/${id}`, { method: 'DELETE' });
+    const res = await fetch(`${API_BASE_URL}/api/goinhanvien/${id}`, { method: 'DELETE', headers: headerNV() });
     return xuLyPhanHoi(res);
   },
 
   layDanhSachDonHang: async (): Promise<DonHang[]> => {
-    const res = await fetch(`${API_BASE_URL}/api/donhang`);
+    const res = await fetch(`${API_BASE_URL}/api/donhang`, { headers: headerNV() });
     return xuLyPhanHoi(res);
   },
 
   capNhatTrangThaiDonHang: async (id: number, trangThai: TrangThaiDonHang): Promise<DonHang> => {
     const res = await fetch(`${API_BASE_URL}/api/donhang/${id}/trangthai`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: headerNV(),
       body: JSON.stringify({ trangThai }),
     });
     return xuLyPhanHoi(res);

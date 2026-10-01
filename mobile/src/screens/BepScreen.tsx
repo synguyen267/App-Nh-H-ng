@@ -9,7 +9,8 @@ import {
   RefreshControl,
   useWindowDimensions,
 } from 'react-native';
-import { api, DonHang, LuotGoi, TrangThaiDonHang } from '../api/client';
+import { api, DonHang, LuotGoi, TrangThaiDonHang, daDangNhapNhanVien } from '../api/client';
+import PinPad from '../components/PinPad';
 import IconBan from '../components/IconBan';
 import { Clock, Flame, CheckCircle2, XCircle, ChefHat, Bell } from 'lucide-react-native';
 
@@ -141,7 +142,7 @@ function LuoiDon({
   );
 }
 
-export default function BepScreen() {
+function NoiDungBep({ onHetPhien }: { onHetPhien: () => void }) {
   const { width } = useWindowDimensions();
   const soCot = width >= 1000 ? 3 : width >= 650 ? 2 : 1;
 
@@ -165,6 +166,10 @@ export default function BepScreen() {
       setDsGoi(goi);
       setLoi(null);
     } catch (e: any) {
+      if (!daDangNhapNhanVien()) {
+        onHetPhien(); // PIN sai hoặc hết phiên: quay lại màn nhập PIN
+        return;
+      }
       setLoi('Không kết nối được backend');
     } finally {
       dangTaiNgam.current = false;
@@ -271,6 +276,12 @@ export default function BepScreen() {
       </ScrollView>
     </View>
   );
+}
+
+export default function BepScreen() {
+  const [daVao, setDaVao] = useState(daDangNhapNhanVien());
+  if (!daVao) return <PinPad tieuDe="Màn hình bếp" onThanhCong={() => setDaVao(true)} />;
+  return <NoiDungBep onHetPhien={() => setDaVao(false)} />;
 }
 
 const styles = StyleSheet.create({

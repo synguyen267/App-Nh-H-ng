@@ -9,7 +9,9 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  UseGuards,
 } from '@nestjs/common';
+import { NhanVienGuard } from '../auth/nhan-vien.guard';
 import { IsString } from 'class-validator';
 
 export interface LuotGoi {
@@ -53,6 +55,7 @@ export class GoiNhanVienService {
 export class GoiNhanVienController {
   constructor(private readonly service: GoiNhanVienService) {}
 
+  @UseGuards(NhanVienGuard)
   @Get()
   timTatCa() {
     return this.service.timTatCa();
@@ -63,6 +66,7 @@ export class GoiNhanVienController {
     return this.service.tao(dto.soBan);
   }
 
+  @UseGuards(NhanVienGuard)
   @Delete(':id')
   xuLy(@Param('id', ParseIntPipe) id: number) {
     return this.service.xuLy(id);
