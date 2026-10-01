@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Quản lý thực đơn</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 :root{--do:#D0281E;--nhat:#FDECEA;--chu:#1A1A1A;--mo:#8E8E93;--vien:#EAEAEA;--phu:#F6F6F7;--xanh:#1E9E5A}
 *{box-sizing:border-box}
@@ -54,13 +55,18 @@ h3{font-size:16px;margin:20px 0 8px}
 .ls .tt2{flex:1;min-width:0}.ls small{display:block;color:var(--mo);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tg{font-size:11px;font-weight:800;border-radius:6px;padding:3px 8px;background:var(--phu);color:var(--mo)}
 .tg.xong{background:#E6F5EC;color:var(--xanh)}.tg.huy{background:var(--phu)}.tg.cho{background:var(--nhat);color:var(--do)}
+#luoiQR{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-top:16px}
+.qr{border:1.5px solid var(--vien);border-radius:14px;padding:14px;text-align:center;break-inside:avoid}
+.qr .hop{display:flex;justify-content:center;margin-bottom:8px}
+.qr b{font-size:20px}.qr small{display:block;color:var(--mo);font-size:11px}
+@media print{.noin{display:none!important}.khung{padding:0}#luoiQR{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:560px){.the3{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div class="khung">
-  <div class="dau"><h1>Quản lý thực đơn</h1><button class="nut" id="them">+ Thêm món</button></div>
-  <div class="loc"><button class="chip on" id="tMenu">Thực đơn</button><button class="chip" id="tDT">Doanh thu</button></div>
+  <div class="dau noin"><h1>Quản lý thực đơn</h1><button class="nut" id="them">+ Thêm món</button></div>
+  <div class="loc noin"><button class="chip on" id="tMenu">Thực đơn</button><button class="chip" id="tDT">Doanh thu</button><button class="chip" id="tQR">Mã QR</button></div>
   <div id="tabMenu">
     <div class="loc" id="loc"></div>
     <div id="ds"></div>
@@ -68,6 +74,18 @@ h3{font-size:16px;margin:20px 0 8px}
   <div id="tabDT" hidden>
     <div class="loc" id="kt"><button class="chip on" data-k="hom">Hôm nay</button><button class="chip" data-k="7">7 ngày</button><button class="chip" data-k="30">30 ngày</button></div>
     <div id="thongKe"></div>
+  </div>
+  <div id="tabQR" hidden>
+    <div class="noin">
+      <label class="o">Địa chỉ app (điện thoại khách phải mở được địa chỉ này)<input id="appUrl"></label>
+      <p id="canhBao" style="color:var(--do);font-size:13px;font-weight:700;margin:-6px 0 12px"></p>
+      <div class="hang" style="justify-content:flex-start;align-items:flex-end">
+        <label class="o" style="width:110px;margin:0">Số bàn<input id="soBanQR" type="number" min="1" max="99" value="12"></label>
+        <button class="nut" id="taoQR">Tạo mã QR</button>
+        <button class="nut phu" id="inQR">In</button>
+      </div>
+    </div>
+    <div id="luoiQR"></div>
   </div>
 </div>
 
@@ -205,12 +223,30 @@ $('#fDn').onsubmit = async (e) => {
 let kt = 'hom';
 const TT = { dang_cho: ['Đang chờ', 'cho'], dang_lam: ['Đang làm', 'cho'], hoan_thanh: ['Hoàn thành', 'xong'], da_huy: ['Đã hủy', 'huy'] };
 function doiTab(t) {
-  $('#tabMenu').hidden = t !== 'menu'; $('#tabDT').hidden = t !== 'dt'; $('#them').hidden = t !== 'menu';
-  $('#tMenu').classList.toggle('on', t === 'menu'); $('#tDT').classList.toggle('on', t === 'dt');
+  $('#tabMenu').hidden = t !== 'menu'; $('#tabDT').hidden = t !== 'dt'; $('#tabQR').hidden = t !== 'qr'; $('#them').hidden = t !== 'menu';
+  $('#tMenu').classList.toggle('on', t === 'menu'); $('#tDT').classList.toggle('on', t === 'dt'); $('#tQR').classList.toggle('on', t === 'qr');
   if (t === 'dt') taiDT();
+  if (t === 'qr') kiemTraUrl();
 }
 $('#tMenu').onclick = () => doiTab('menu');
 $('#tDT').onclick = () => doiTab('dt');
+$('#tQR').onclick = () => doiTab('qr');
+
+// ---- Mã QR cho từng bàn: quét là mở app với đúng số bàn
+$('#appUrl').value = localStorage.getItem('appUrl') || `${location.protocol}//${location.hostname}:8081`;
+function kiemTraUrl() {
+  const u = $('#appUrl').value;
+  $('#canhBao').textContent = /localhost|127\.0\.0\.1/.test(u) ? 'Điện thoại khách không mở được "localhost". Hãy nhập IP của máy này, ví dụ http://192.168.1.10:8081 (xem bằng lệnh ipconfig).' : '';
+}
+$('#appUrl').oninput = kiemTraUrl;
+$('#taoQR').onclick = () => {
+  if (typeof QRCode === 'undefined') return toast('Cần có internet để tạo mã QR', true);
+  const goc = $('#appUrl').value.trim().replace(/\/+$/, ''), n = Math.min(99, Math.max(1, Number($('#soBanQR').value) || 1));
+  localStorage.setItem('appUrl', goc);
+  $('#luoiQR').innerHTML = Array.from({ length: n }, (_, i) => `<div class="qr"><div class="hop" id="qr${i + 1}"></div><b>Bàn ${i + 1}</b><small>Quét để gọi món</small></div>`).join('');
+  for (let i = 1; i <= n; i++) new QRCode($('#qr' + i), { text: `${goc}/?ban=${i}`, width: 150, height: 150, correctLevel: QRCode.CorrectLevel.M });
+};
+$('#inQR').onclick = () => window.print();
 $('#kt').onclick = (e) => {
   if (!e.target.dataset.k) return;
   kt = e.target.dataset.k;

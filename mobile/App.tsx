@@ -3,7 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { GioHangProvider } from './src/context/GioHangContext';
-import { BanProvider } from './src/context/BanContext';
+import { BanProvider, banTuUrl } from './src/context/BanContext';
 import ChonBanScreen from './src/screens/ChonBanScreen';
 import MenuScreen from './src/screens/MenuScreen';
 import GioHangScreen from './src/screens/GioHangScreen';
@@ -19,7 +19,7 @@ export default function App() {
         <NavigationContainer>
           <StatusBar style="dark" />
           <Stack.Navigator
-            initialRouteName="ChonBan"
+            initialRouteName={banTuUrl() ? 'ThucDon' : 'ChonBan'}
             screenOptions={{ headerStyle: { backgroundColor: '#FFFFFF' }, headerShadowVisible: true, headerTintColor: '#1A1A1A', headerTitleStyle: { fontWeight: '800' } }}
           >
             <Stack.Screen name="ChonBan" component={ChonBanScreen} options={{ title: 'Chọn bàn', headerShown: false }} />
