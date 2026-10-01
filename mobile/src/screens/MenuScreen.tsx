@@ -33,16 +33,22 @@ function NutThem({
   soLuong,
   onThem,
   onBot,
+  tat,
 }: {
   soLuong: number;
   onThem: () => void;
   onBot: () => void;
+  tat?: boolean; // món hết hàng: không cho thêm
 }) {
   if (soLuong === 0) {
     return (
-      <Pressable style={styles.nutThem} onPress={onThem}>
-        <Plus size={14} color={MAU.nhan} strokeWidth={3} />
-        <Text style={styles.textNutThem}>Thêm</Text>
+      <Pressable
+        style={[styles.nutThem, tat && styles.nutThemTat]}
+        onPress={onThem}
+        disabled={tat}
+      >
+        <Plus size={14} color={tat ? MAU.chuMo : MAU.nhan} strokeWidth={3} />
+        <Text style={[styles.textNutThem, tat && { color: MAU.chuMo }]}>Thêm</Text>
       </Pressable>
     );
   }
@@ -52,7 +58,12 @@ function NutThem({
         <Minus size={16} color={MAU.chu} strokeWidth={3} />
       </Pressable>
       <Text style={styles.soLuongStepper}>{soLuong}</Text>
-      <Pressable style={[styles.nutStepper, styles.nutStepperDam]} onPress={onThem} hitSlop={6}>
+      <Pressable
+        style={[styles.nutStepper, styles.nutStepperDam, tat && styles.nutStepperTat]}
+        onPress={onThem}
+        disabled={tat}
+        hitSlop={6}
+      >
         <Plus size={16} color="white" strokeWidth={3} />
       </Pressable>
     </View>
@@ -72,17 +83,25 @@ function TheMon({
   onThem: () => void;
   onBot: () => void;
 }) {
+  const hetHang = !mon.conHang;
   return (
     <View style={styles.theMon}>
       <Pressable onPress={onXem}>
-        <AnhMon mon={mon} style={styles.anhThe} />
+        <View>
+          <AnhMon mon={mon} style={[styles.anhThe, hetHang && { opacity: 0.4 }]} />
+          {hetHang && (
+            <View style={styles.nhanHetHang}>
+              <Text style={styles.textNhanHetHang}>Hết hàng</Text>
+            </View>
+          )}
+        </View>
       </Pressable>
       <View style={styles.noiDungThe}>
         <Text style={styles.tenMon} numberOfLines={1}>{mon.ten}</Text>
         <Text style={styles.moTaMon} numberOfLines={2}>{mon.moTa || ' '}</Text>
         <View style={styles.hangDuoiThe}>
-          <Text style={styles.giaMon}>{mon.gia.toLocaleString('vi-VN')}đ</Text>
-          <NutThem soLuong={soLuong} onThem={onThem} onBot={onBot} />
+          <Text style={[styles.giaMon, hetHang && { color: MAU.chuMo }]}>{mon.gia.toLocaleString('vi-VN')}đ</Text>
+          <NutThem soLuong={soLuong} onThem={onThem} onBot={onBot} tat={hetHang} />
         </View>
       </View>
     </View>
@@ -271,12 +290,14 @@ export default function MenuScreen({ navigation }: any) {
               <View style={{ padding: 18 }}>
                 <Text style={styles.tenModal}>{monXem.ten}</Text>
                 {monXem.moTa ? <Text style={styles.moTaModal}>{monXem.moTa}</Text> : null}
+                {!monXem.conHang && <Text style={styles.textHetHangModal}>Món này tạm thời hết hàng</Text>}
                 <View style={styles.hangDuoiModal}>
                   <Text style={styles.giaModal}>{monXem.gia.toLocaleString('vi-VN')}đ</Text>
                   <NutThem
                     soLuong={soLuongModal}
                     onThem={() => themVaoGio(monXem)}
                     onBot={() => giamSoLuong(monXem.id)}
+                    tat={!monXem.conHang}
                   />
                 </View>
               </View>
@@ -361,6 +382,19 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   textNutThem: { color: MAU.nhan, fontWeight: '800', fontSize: 13 },
+  nutThemTat: { borderColor: MAU.vien, backgroundColor: MAU.nenPhu },
+  nutStepperTat: { borderColor: '#C9C9CE', backgroundColor: '#C9C9CE' },
+  nhanHetHang: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: 'rgba(26,26,26,0.85)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  textNhanHetHang: { color: 'white', fontSize: 12, fontWeight: '800' },
+  textHetHangModal: { color: MAU.nhan, fontSize: 13, fontWeight: '700', marginTop: 8 },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   nutStepper: {
     width: 28,

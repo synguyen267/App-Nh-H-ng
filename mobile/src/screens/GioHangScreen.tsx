@@ -6,7 +6,7 @@ import {
   StyleSheet,
   FlatList,
   Pressable,
-  Alert,
+  TextInput,
   ActivityIndicator,
 } from 'react-native';
 import { useGioHang } from '../context/GioHangContext';
@@ -14,6 +14,7 @@ import { api } from '../api/client';
 import AnhMon from '../components/AnhMon';
 import { Plus, Minus, ShoppingCart } from 'lucide-react-native';
 import { useBan } from '../context/BanContext';
+import { thongBao } from '../utils/thongbao';
 
 const MAU = {
   nen: '#FFFFFF',
@@ -25,7 +26,7 @@ const MAU = {
 };
 
 export default function GioHangScreen({ navigation }: any) {
-  const { cacMuc, themVaoGio, giamSoLuong, xoaKhoiGio, xoaTatCa, tongTien } = useGioHang();
+  const { cacMuc, themVaoGio, giamSoLuong, xoaKhoiGio, capNhatGhiChu, xoaTatCa, tongTien } = useGioHang();
   const { soBan } = useBan();
   const [dangDat, setDangDat] = useState(false);
 
@@ -33,12 +34,16 @@ export default function GioHangScreen({ navigation }: any) {
     if (cacMuc.length === 0) return;
     setDangDat(true);
     try {
-      const danhSachMon = cacMuc.map((m) => ({ monAnId: m.monAn.id, soLuong: m.soLuong }));
+      const danhSachMon = cacMuc.map((m) => ({
+        monAnId: m.monAn.id,
+        soLuong: m.soLuong,
+        ghiChu: m.ghiChu?.trim() || undefined,
+      }));
       const donHang = await api.taoDonHang(soBan || 'Chưa rõ bàn', danhSachMon);  // soBan lấy từ màn hình Chọn bàn
       xoaTatCa();
       navigation.replace('DatMonThanhCong', { donHang });
     } catch (e: any) {
-      Alert.alert('Lỗi', e.message || 'Không đặt được món, thử lại sau');
+      thongBao('Không đặt được món', e.message || 'Thử lại sau');
     } finally {
       setDangDat(false);
     }
@@ -61,6 +66,7 @@ export default function GioHangScreen({ navigation }: any) {
       <FlatList
         data={cacMuc}
         keyExtractor={(item) => String(item.monAn.id)}
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ padding: 16 }}
         ListHeaderComponent={
           <View style={styles.oHienBan}>
@@ -86,6 +92,14 @@ export default function GioHangScreen({ navigation }: any) {
                   <Text style={styles.textNutXoa}>Xóa</Text>
                 </Pressable>
               </View>
+              <TextInput
+                style={styles.oGhiChu}
+                value={item.ghiChu ?? ''}
+                onChangeText={(t) => capNhatGhiChu(item.monAn.id, t)}
+                placeholder="Ghi chú: ít cay, không hành..."
+                placeholderTextColor={MAU.chuMo}
+                maxLength={80}
+              />
             </View>
           </View>
         )}
@@ -151,6 +165,17 @@ const styles = StyleSheet.create({
   },
   nutTronDam: { borderColor: MAU.nhan, backgroundColor: MAU.nhan },
   soLuong: { minWidth: 20, textAlign: 'center', fontWeight: '800', fontSize: 14, color: MAU.chu },
+  oGhiChu: {
+    marginTop: 8,
+    backgroundColor: MAU.nenPhu,
+    borderWidth: 1,
+    borderColor: MAU.vien,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    fontSize: 13,
+    color: MAU.chu,
+  },
   nutXoa: { marginLeft: 'auto', paddingHorizontal: 4 },
   textNutXoa: { color: MAU.nhan, fontSize: 12, fontWeight: '700' },
   chanTrang: {

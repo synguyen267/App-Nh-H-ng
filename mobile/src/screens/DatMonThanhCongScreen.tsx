@@ -26,7 +26,10 @@ export default function DatMonThanhCongScreen({ route, navigation }: any) {
         <View style={styles.the}>
           {donHang.chiTiet.map((ct: any) => (
             <View key={ct.id} style={styles.dong}>
-              <Text style={styles.tenMon}>{ct.soLuong}× {ct.monAn.ten}</Text>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={styles.tenMon}>{ct.soLuong}× {ct.monAn.ten}</Text>
+                {!!ct.ghiChu && <Text style={styles.ghiChu}>{ct.ghiChu}</Text>}
+              </View>
               <Text style={styles.gia}>{(ct.donGia * ct.soLuong).toLocaleString('vi-VN')}đ</Text>
             </View>
           ))}
@@ -73,6 +76,7 @@ const styles = StyleSheet.create({
   },
   dong: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
   tenMon: { color: MAU.chu, fontSize: 14 },
+  ghiChu: { color: MAU.chuMo, fontSize: 12, marginTop: 2 },
   gia: { color: MAU.chu, fontSize: 14, fontWeight: '700' },
   duong: { height: 1, backgroundColor: MAU.vien, marginVertical: 8 },
   tongChu: { fontWeight: '800', fontSize: 15, color: MAU.chu },

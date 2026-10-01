@@ -47,6 +47,9 @@ export class DonHangService {
       if (!monAn) {
         throw new BadRequestException(`Món ăn #${item.monAnId} không tồn tại`);
       }
+      if (!monAn.conHang) {
+        throw new BadRequestException(`Món "${monAn.ten}" đã hết hàng`);
+      }
       const ct = this.chiTietRepo.create({
         monAnId: monAn.id,
         soLuong: item.soLuong,

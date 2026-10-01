@@ -6,6 +6,7 @@ interface GioHangContextType {
   themVaoGio: (monAn: MonAn) => void;
   giamSoLuong: (monAnId: number) => void;
   xoaKhoiGio: (monAnId: number) => void;
+  capNhatGhiChu: (monAnId: number, ghiChu: string) => void;
   xoaTatCa: () => void;
   tongTien: number;
   tongSoLuong: number;
@@ -40,6 +41,10 @@ export function GioHangProvider({ children }: { children: React.ReactNode }) {
     setCacMuc((truoc) => truoc.filter((m) => m.monAn.id !== monAnId));
   }, []);
 
+  const capNhatGhiChu = useCallback((monAnId: number, ghiChu: string) => {
+    setCacMuc((truoc) => truoc.map((m) => (m.monAn.id === monAnId ? { ...m, ghiChu } : m)));
+  }, []);
+
   const xoaTatCa = useCallback(() => setCacMuc([]), []);
 
   const tongTien = cacMuc.reduce((tong, m) => tong + m.monAn.gia * m.soLuong, 0);
@@ -47,7 +52,7 @@ export function GioHangProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <GioHangContext.Provider
-      value={{ cacMuc, themVaoGio, giamSoLuong, xoaKhoiGio, xoaTatCa, tongTien, tongSoLuong }}
+      value={{ cacMuc, themVaoGio, giamSoLuong, xoaKhoiGio, capNhatGhiChu, xoaTatCa, tongTien, tongSoLuong }}
     >
       {children}
     </GioHangContext.Provider>

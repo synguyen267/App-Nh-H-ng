@@ -13,6 +13,7 @@ export interface MonAn {
 export interface MucGioHang {
   monAn: MonAn;
   soLuong: number;
+  ghiChu?: string;
 }
 
 export interface ChiTietDonHang {
@@ -56,7 +57,7 @@ export const api = {
     return xuLyPhanHoi(res);
   },
 
-  taoDonHang: async (soBan: string, danhSachMon: { monAnId: number; soLuong: number }[]): Promise<DonHang> => {
+  taoDonHang: async (soBan: string, danhSachMon: { monAnId: number; soLuong: number; ghiChu?: string }[]): Promise<DonHang> => {
     const res = await fetch(`${API_BASE_URL}/api/donhang`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
